@@ -30,8 +30,14 @@ public class DangNhapService {
         this.repo = repo;
     }
 
-    @Transactional(readOnly = true)
+    // Đăng nhập nhân viên (giữ nguyên cách gọi cũ)
     public TaiKhoan dangNhap(String tenDangNhap, char[] matKhau) {
+        return dangNhap(tenDangNhap, matKhau, TaiKhoan.NHAN_VIEN);
+    }
+
+    // vaiTro: TaiKhoan.QUAN_LY hoặc TaiKhoan.NHAN_VIEN - tài khoản phải đúng vai trò đang đăng nhập
+    @Transactional(readOnly = true)
+    public TaiKhoan dangNhap(String tenDangNhap, char[] matKhau, String vaiTro) {
         String ten = tenDangNhap == null ? "" : tenDangNhap.trim();
         if (ten.isEmpty() || matKhau == null || matKhau.length == 0) {
             throw new LoiNghiepVu("Vui lòng nhập tên đăng nhập và mật khẩu");
@@ -56,6 +62,12 @@ public class DangNhapService {
         saiLienTiep.remove(khoa);
 
         if (!tk.isHoatDong()) throw new LoiNghiepVu("Tài khoản đã bị khóa. Vui lòng liên hệ quản lý");
+        String vtTaiKhoan = tk.getVaiTro() == null ? TaiKhoan.NHAN_VIEN : tk.getVaiTro();
+        if (!vtTaiKhoan.equalsIgnoreCase(vaiTro)) {
+            throw new LoiNghiepVu(TaiKhoan.QUAN_LY.equals(vaiTro)
+                    ? "Tài khoản này không có quyền Quản lý"
+                    : "Đây là tài khoản Quản lý. Hãy quay lại và chọn Quản lý để đăng nhập");
+        }
         if (!tk.getNhanVien().isDangLam()) throw new LoiNghiepVu("Nhân viên không còn làm việc. Vui lòng liên hệ quản lý");
         return tk;
     }

@@ -1,5 +1,6 @@
 package com.highlands.ui;
 
+import com.highlands.entity.TaiKhoan;
 import com.highlands.service.DangNhapService;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -7,9 +8,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Arrays;
 
-/** Màn hình đăng nhập riêng cho Nhân viên. */
+/** Màn hình đăng nhập cho Nhân viên và Quản lý (chọn bằng vaiTro). */
 public class DangNhapNhanVien extends JFrame {
     private final ConfigurableApplicationContext ctx;
+    private final String vaiTro;
+    private final Runnable moQuanLy;
     private final DangNhapService dangNhapService;
     private final JTextField oTen = new JTextField();
     private final JPasswordField oMatKhau = new JPasswordField();
@@ -17,8 +20,15 @@ public class DangNhapNhanVien extends JFrame {
     private final JButton nutDangNhap = KieuNV.nut("Đăng nhập");
 
     public DangNhapNhanVien(ConfigurableApplicationContext ctx) {
-        super("Highlands Coffee – Đăng nhập nhân viên");
+        this(ctx, TaiKhoan.NHAN_VIEN, null);
+    }
+
+    /** moQuanLy: việc chạy sau khi Quản lý đăng nhập đúng (mở cửa sổ quản trị). */
+    public DangNhapNhanVien(ConfigurableApplicationContext ctx, String vaiTro, Runnable moQuanLy) {
+        super(TaiKhoan.QUAN_LY.equals(vaiTro) ? "Highlands Coffee – Đăng nhập quản lý" : "Highlands Coffee – Đăng nhập nhân viên");
         this.ctx = ctx;
+        this.vaiTro = vaiTro;
+        this.moQuanLy = moQuanLy;
         this.dangNhapService = ctx.getBean(DangNhapService.class);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -41,7 +51,7 @@ public class DangNhapNhanVien extends JFrame {
         trai.add(Box.createVerticalStrut(18));
         trai.add(canGiua(new JLabel("HIGHLANDS COFFEE"), new Font("Segoe UI", Font.BOLD, 24), Color.WHITE));
         trai.add(Box.createVerticalStrut(6));
-        trai.add(canGiua(new JLabel("Phân hệ NHÂN VIÊN bán hàng"), KieuNV.FONT, new Color(0xF5D0D5)));
+        trai.add(canGiua(new JLabel(TaiKhoan.QUAN_LY.equals(vaiTro) ? "Phân hệ QUẢN LÝ" : "Phân hệ NHÂN VIÊN bán hàng"), KieuNV.FONT, new Color(0xF5D0D5)));
         trai.add(Box.createVerticalGlue());
 
         JPanel phai = new JPanel();
@@ -113,10 +123,14 @@ public class DangNhapNhanVien extends JFrame {
         char[] mk = oMatKhau.getPassword();
         nhanLoi.setText(" ");
         nutDangNhap.setEnabled(false);
-        ChayNen.chay(() -> dangNhapService.dangNhap(ten, mk), tk -> {
+        ChayNen.chay(() -> dangNhapService.dangNhap(ten, mk, vaiTro), tk -> {
             Arrays.fill(mk, '\0');
             dispose();
-            new FormNhanVien(ctx, tk).setVisible(true);
+            if (TaiKhoan.QUAN_LY.equals(vaiTro) && moQuanLy != null) {
+                moQuanLy.run();
+            } else {
+                new FormNhanVien(ctx, tk).setVisible(true);
+            }
         }, ex -> {
             Arrays.fill(mk, '\0');
             oMatKhau.setText("");

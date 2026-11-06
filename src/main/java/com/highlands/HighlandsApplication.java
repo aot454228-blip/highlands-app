@@ -1,5 +1,6 @@
 package com.highlands;
 
+import com.highlands.entity.TaiKhoan;
 import com.highlands.service.DanhMucService;
 import com.highlands.service.KhuyenMaiService;
 import com.highlands.service.SanPhamService;
@@ -67,11 +68,14 @@ public class HighlandsApplication {
                 new DangNhapNhanVien(ctx).setVisible(true);
                 return;
             }
-            FormChinh f = new FormChinh(dv, () -> {
-                ctx.close();
-                System.exit(0);
-            });
-            f.setVisible(true);
+            // Quản lý cũng phải đăng nhập; đúng tài khoản mới mở cửa sổ quản trị
+            new DangNhapNhanVien(ctx, TaiKhoan.QUAN_LY, () -> {
+                FormChinh f = new FormChinh(dv, () -> {
+                    ctx.close();
+                    System.exit(0);
+                });
+                f.setVisible(true);
+            }).setVisible(true);
         });
     }
 

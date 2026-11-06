@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 @Table(name = "tai_khoan")
 public class TaiKhoan {
 
+    public static final String QUAN_LY = "QUAN_LY";
+    public static final String NHAN_VIEN = "NHAN_VIEN";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,6 +25,10 @@ public class TaiKhoan {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "nhan_vien_id", nullable = false)
     private NhanVien nhanVien;
+
+    // Vai trò đăng nhập: QUAN_LY hoặc NHAN_VIEN
+    @Column(name = "vai_tro", columnDefinition = "NVARCHAR(20) NOT NULL DEFAULT 'NHAN_VIEN'")
+    private String vaiTro = NHAN_VIEN;
 
     @Column(name = "hoat_dong", nullable = false)
     private boolean hoatDong = true;
@@ -45,6 +52,8 @@ public class TaiKhoan {
     public void setMatKhauHash(String matKhauHash) { this.matKhauHash = matKhauHash; }
     public NhanVien getNhanVien() { return nhanVien; }
     public void setNhanVien(NhanVien nhanVien) { this.nhanVien = nhanVien; }
+    public String getVaiTro() { return vaiTro; }
+    public void setVaiTro(String vaiTro) { this.vaiTro = vaiTro; }
     public boolean isHoatDong() { return hoatDong; }
     public void setHoatDong(boolean hoatDong) { this.hoatDong = hoatDong; }
     public LocalDateTime getNgayTao() { return ngayTao; }
