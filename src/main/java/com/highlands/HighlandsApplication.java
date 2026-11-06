@@ -69,11 +69,11 @@ public class HighlandsApplication {
                 return;
             }
             // Quản lý cũng phải đăng nhập; đúng tài khoản mới mở cửa sổ quản trị
-            new DangNhapNhanVien(ctx, TaiKhoan.QUAN_LY, () -> {
+            new DangNhapNhanVien(ctx, TaiKhoan.QUAN_LY, tk -> {
                 FormChinh f = new FormChinh(dv, () -> {
                     ctx.close();
                     System.exit(0);
-                });
+                }, ctx, tk);
                 f.setVisible(true);
             }).setVisible(true);
         });

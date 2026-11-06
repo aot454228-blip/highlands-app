@@ -1,5 +1,10 @@
 package com.highlands.ui;
 
+import com.highlands.entity.TaiKhoan;
+import com.highlands.service.BanHangService;
+import com.highlands.service.ThanhToanService;
+import org.springframework.context.ConfigurableApplicationContext;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -22,8 +27,14 @@ public class FormChinh extends JFrame {
     private final Map<String, Nut> menu = new LinkedHashMap<>();
     private final Map<String, JComponent> trang = new LinkedHashMap<>();
     private final Map<String, String> tenTrang = new LinkedHashMap<>();
+    private final Map<String, Runnable> khiMoThem = new LinkedHashMap<>();
 
     public FormChinh(DichVu dv, Runnable khiDong) {
+        this(dv, khiDong, null, null);
+    }
+
+    /** Có ctx + taiKhoan: Quản lý dùng được cả chức năng Bán hàng và Lịch sử đơn hàng của Nhân viên. */
+    public FormChinh(DichVu dv, Runnable khiDong, ConfigurableApplicationContext ctx, TaiKhoan taiKhoan) {
         super("Highlands - Quản lý cửa hàng");
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -45,6 +56,16 @@ public class FormChinh extends JFrame {
         them("thongKe", "Thống kê", "Highlands - Thống kê", new TrangThongKe(dv));
         them("sanPham", "Sản phẩm & Menu", "Highlands - Quản lý sản phẩm", new TrangSanPham(dv));
         them("khuyenMai", "Khuyến mãi", "Highlands - Quản lý khuyến mãi", new TrangKhuyenMai(dv));
+
+        // Chức năng của Nhân viên, dùng chung code với phân hệ Nhân viên
+        if (ctx != null && taiKhoan != null) {
+            ThanhToanService thanhToan = ctx.getBean(ThanhToanService.class);
+            TrangLichSuDonHang lichSu = new TrangLichSuDonHang(thanhToan);
+            them("banHang", "Bán hàng", "Highlands - Bán hàng",
+                    new TrangBanHang(ctx.getBean(BanHangService.class), thanhToan, taiKhoan.getNhanVien()));
+            them("lichSuDon", "Lịch sử đơn hàng", "Highlands - Lịch sử đơn hàng", lichSu);
+            khiMoThem.put("lichSuDon", lichSu::lamMoi);
+        }
 
         // Vừa màn hình laptop 1366x768; màn hình lớn thì 1360x820
         Rectangle man = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
@@ -130,6 +151,8 @@ public class FormChinh extends JFrame {
         tieuDe.setText(tenTrang.get(ma));
         menu.forEach((k, n) -> n.setKieu(k.equals(ma) ? Nut.Kieu.MENU_CHON : Nut.Kieu.MENU));
         if (trang.get(ma) instanceof Trang t) t.khiMo();
+        Runnable them = khiMoThem.get(ma);
+        if (them != null) them.run();
     }
 
     private static Image veIcon() {

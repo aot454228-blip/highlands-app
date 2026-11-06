@@ -12,7 +12,7 @@ import java.util.Arrays;
 public class DangNhapNhanVien extends JFrame {
     private final ConfigurableApplicationContext ctx;
     private final String vaiTro;
-    private final Runnable moQuanLy;
+    private final java.util.function.Consumer<TaiKhoan> moQuanLy;
     private final DangNhapService dangNhapService;
     private final JTextField oTen = new JTextField();
     private final JPasswordField oMatKhau = new JPasswordField();
@@ -23,8 +23,8 @@ public class DangNhapNhanVien extends JFrame {
         this(ctx, TaiKhoan.NHAN_VIEN, null);
     }
 
-    /** moQuanLy: việc chạy sau khi Quản lý đăng nhập đúng (mở cửa sổ quản trị). */
-    public DangNhapNhanVien(ConfigurableApplicationContext ctx, String vaiTro, Runnable moQuanLy) {
+    /** moQuanLy: việc chạy sau khi Quản lý đăng nhập đúng (mở cửa sổ quản trị), nhận tài khoản vừa đăng nhập. */
+    public DangNhapNhanVien(ConfigurableApplicationContext ctx, String vaiTro, java.util.function.Consumer<TaiKhoan> moQuanLy) {
         super(TaiKhoan.QUAN_LY.equals(vaiTro) ? "Highlands Coffee – Đăng nhập quản lý" : "Highlands Coffee – Đăng nhập nhân viên");
         this.ctx = ctx;
         this.vaiTro = vaiTro;
@@ -127,7 +127,7 @@ public class DangNhapNhanVien extends JFrame {
             Arrays.fill(mk, '\0');
             dispose();
             if (TaiKhoan.QUAN_LY.equals(vaiTro) && moQuanLy != null) {
-                moQuanLy.run();
+                moQuanLy.accept(tk);
             } else {
                 new FormNhanVien(ctx, tk).setVisible(true);
             }
