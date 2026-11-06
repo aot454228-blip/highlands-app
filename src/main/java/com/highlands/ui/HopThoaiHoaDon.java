@@ -81,8 +81,10 @@ class HopThoaiHoaDon extends JDialog {
         giay.add(hang("TỔNG THANH TOÁN:", KieuNV.tien(hd.tongThanhToan()), new Font("SansSerif", Font.BOLD, 14)));
         giay.add(gach());
         giay.add(hang("Phương thức:", hd.phuongThuc(), F));
-        giay.add(hang("Tiền khách đưa:", KieuNV.tien(hd.tienKhach()), F));
-        giay.add(hang("Tiền thừa:", KieuNV.tien(hd.tienThua()), F));
+        if (!com.highlands.service.ThanhToanService.CHUYEN_KHOAN.equals(hd.phuongThuc())) {
+            giay.add(hang("Tiền khách đưa:", KieuNV.tien(hd.tienKhach()), F));
+            giay.add(hang("Tiền thừa:", KieuNV.tien(hd.tienThua()), F));
+        }
         giay.add(Box.createVerticalStrut(12));
         giay.add(giuaDong("Cảm ơn quý khách – Hẹn gặp lại!", F_NHO));
 

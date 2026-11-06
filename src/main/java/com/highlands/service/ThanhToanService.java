@@ -39,6 +39,7 @@ import java.util.Map;
 public class ThanhToanService {
 
     public static final String TIEN_MAT = "Tiền mặt";
+    public static final String CHUYEN_KHOAN = "Chuyển khoản";
     private static final int SO_DON_TOI_DA = 500;
     private static final BigDecimal TIEN_KHACH_TOI_DA = new BigDecimal("100000000000"); // 100 tỷ, chặn nhập nhầm
 
@@ -90,17 +91,29 @@ public class ThanhToanService {
     // Gọi lại với cùng maGiaoDich (bấm 2 lần, lỗi mạng...) thì trả lại hóa đơn đã lưu, không tạo đơn thứ hai.
     public HoaDon thanhToan(Long nhanVienId, List<DongGio> gio, String maKhuyenMai,
                             BigDecimal tienKhach, String maGiaoDich) {
+        return thanhToan(nhanVienId, gio, maKhuyenMai, tienKhach, maGiaoDich, TIEN_MAT);
+    }
+
+    // phuongThuc: TIEN_MAT (cần tiền khách đưa) hoặc CHUYEN_KHOAN (khách chuyển đúng số tiền, tienKhach bỏ qua)
+    public HoaDon thanhToan(Long nhanVienId, List<DongGio> gio, String maKhuyenMai,
+                            BigDecimal tienKhach, String maGiaoDich, String phuongThuc) {
+        if (!TIEN_MAT.equals(phuongThuc) && !CHUYEN_KHOAN.equals(phuongThuc)) {
+            throw new LoiNghiepVu("Phương thức thanh toán không hợp lệ");
+        }
+        final boolean chuyenKhoan = CHUYEN_KHOAN.equals(phuongThuc);
         if (nhanVienId == null) throw new LoiNghiepVu("Chưa xác định nhân viên bán hàng");
         if (gio == null || gio.isEmpty()) throw new LoiNghiepVu("Giỏ hàng đang trống");
         String khoa = maGiaoDich == null ? "" : maGiaoDich.trim();
         if (khoa.isEmpty() || khoa.length() > 64) throw new LoiNghiepVu("Mã giao dịch không hợp lệ");
-        if (tienKhach == null || tienKhach.signum() <= 0) throw new LoiNghiepVu("Vui lòng nhập số tiền khách đưa");
-        if (tienKhach.compareTo(TIEN_KHACH_TOI_DA) > 0 || tienKhach.stripTrailingZeros().scale() > 0) {
-            throw new LoiNghiepVu("Số tiền khách đưa không hợp lệ");
+        if (!chuyenKhoan) {
+            if (tienKhach == null || tienKhach.signum() <= 0) throw new LoiNghiepVu("Vui lòng nhập số tiền khách đưa");
+            if (tienKhach.compareTo(TIEN_KHACH_TOI_DA) > 0 || tienKhach.stripTrailingZeros().scale() > 0) {
+                throw new LoiNghiepVu("Số tiền khách đưa không hợp lệ");
+            }
         }
         List<DongGio> banSao = new ArrayList<>(gio);
         try {
-            return ghi.execute(st -> luuDon(nhanVienId, banSao, maKhuyenMai, tienKhach, khoa));
+            return ghi.execute(st -> luuDon(nhanVienId, banSao, maKhuyenMai, tienKhach, khoa, phuongThuc));
         } catch (DataIntegrityViolationException e) {
             // Hai lần bấm chạy song song: lần kia đã lưu xong với cùng mã giao dịch
             HoaDon daLuu = doc.execute(st -> thanhToanRepo.findByMaGiaoDich(khoa).map(this::dungHoaDon).orElse(null));
@@ -109,7 +122,8 @@ public class ThanhToanService {
         }
     }
 
-    private HoaDon luuDon(Long nhanVienId, List<DongGio> gio, String maKhuyenMai, BigDecimal tienKhach, String khoa) {
+    private HoaDon luuDon(Long nhanVienId, List<DongGio> gio, String maKhuyenMai, BigDecimal tienKhach, String khoa,
+                          String phuongThuc) {
         // Đã lưu rồi (gửi lại) -> trả đúng hóa đơn đó
         var daCo = thanhToanRepo.findByMaGiaoDich(khoa);
         if (daCo.isPresent()) return dungHoaDon(daCo.get());
@@ -150,7 +164,8 @@ public class ThanhToanService {
         }
         BigDecimal tong = tienHang.subtract(giam);
 
-        // 3. Tiền khách đưa
+        // 3. Tiền khách đưa (chuyển khoản: khách chuyển đúng số tiền, không có tiền thừa)
+        if (CHUYEN_KHOAN.equals(phuongThuc)) tienKhach = tong;
         if (tienKhach.compareTo(tong) < 0) throw new LoiNghiepVu("Tiền khách đưa chưa đủ");
         BigDecimal tienThua = tienKhach.subtract(tong);
 
@@ -188,7 +203,7 @@ public class ThanhToanService {
         tt.setTienHang(tienHang);
         tt.setGiamGia(giam);
         tt.setTongThanhToan(tong);
-        tt.setPhuongThuc(TIEN_MAT);
+        tt.setPhuongThuc(phuongThuc);
         tt.setTienKhachDua(tienKhach);
         tt.setTienThua(tienThua);
         tt.setNgayThanhToan(LocalDateTime.now());
