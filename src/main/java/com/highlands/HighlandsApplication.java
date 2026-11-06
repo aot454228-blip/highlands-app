@@ -55,28 +55,40 @@ public class HighlandsApplication {
                 ctx.getBean(ToppingService.class),
                 ctx.getBean(ThongKeService.class));
 
+        dvChung = dv;
+        ctxChung = ctx;
         SwingUtilities.invokeLater(() -> {
             cho.dong();
-            // Một app, hai phân hệ: chọn Quản lý (cửa sổ quản trị) hoặc Nhân viên (đăng nhập rồi bán hàng)
-            ChonVaiTro.VaiTro vaiTro = ChonVaiTro.hien();
-            if (vaiTro == null) {
+            hienChonVaiTro();
+        });
+    }
+
+    private static ConfigurableApplicationContext ctxChung;
+    private static DichVu dvChung;
+
+    /** Mở hộp thoại chọn vai trò. Gọi lại hàm này khi đăng xuất để đổi vai trò. */
+    public static void hienChonVaiTro() {
+        ConfigurableApplicationContext ctx = ctxChung;
+        DichVu dv = dvChung;
+        // Một app, hai phân hệ: chọn Quản lý hoặc Nhân viên, cả hai đều phải đăng nhập
+        ChonVaiTro.VaiTro vaiTro = ChonVaiTro.hien();
+        if (vaiTro == null) {
+            ctx.close();
+            System.exit(0);
+            return;
+        }
+        if (vaiTro == ChonVaiTro.VaiTro.NHAN_VIEN) {
+            new DangNhapNhanVien(ctx).setVisible(true);
+            return;
+        }
+        // Quản lý đăng nhập đúng mới mở cửa sổ quản trị (có cả Bán hàng + Lịch sử đơn hàng)
+        new DangNhapNhanVien(ctx, TaiKhoan.QUAN_LY, tk -> {
+            FormChinh f = new FormChinh(dv, () -> {
                 ctx.close();
                 System.exit(0);
-                return;
-            }
-            if (vaiTro == ChonVaiTro.VaiTro.NHAN_VIEN) {
-                new DangNhapNhanVien(ctx).setVisible(true);
-                return;
-            }
-            // Quản lý cũng phải đăng nhập; đúng tài khoản mới mở cửa sổ quản trị
-            new DangNhapNhanVien(ctx, TaiKhoan.QUAN_LY, tk -> {
-                FormChinh f = new FormChinh(dv, () -> {
-                    ctx.close();
-                    System.exit(0);
-                }, ctx, tk);
-                f.setVisible(true);
-            }).setVisible(true);
-        });
+            }, ctx, tk);
+            f.setVisible(true);
+        }).setVisible(true);
     }
 
     // Lấy thông báo gốc (lớp trong cùng) để người dùng biết lỗi gì

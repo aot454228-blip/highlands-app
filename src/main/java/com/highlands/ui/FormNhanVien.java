@@ -95,7 +95,7 @@ public class FormNhanVien extends JFrame {
         p.add(dong(nv.getHoTen(), KieuNV.DAM, KieuNV.CHU, LEFT_ALIGNMENT));
         p.add(dong("Mã NV: " + nv.getMaNhanVien(), KieuNV.NHO, KieuNV.CHU_PHU, LEFT_ALIGNMENT));
         p.add(Box.createVerticalStrut(12));
-        JButton dangXuat = KieuNV.nutPhu("Đăng xuất");
+        JButton dangXuat = KieuNV.nutPhu("Đăng xuất / Đổi vai trò");
         dangXuat.setAlignmentX(LEFT_ALIGNMENT);
         dangXuat.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         dangXuat.addActionListener(e -> dangXuat());
@@ -120,7 +120,7 @@ public class FormNhanVien extends JFrame {
         if (JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?\nGiỏ hàng chưa thanh toán sẽ bị hủy.",
                 "Đăng xuất", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
         dispose();
-        new DangNhapNhanVien(ctx).setVisible(true);
+        com.highlands.HighlandsApplication.hienChonVaiTro();
     }
 
     private void thoatUngDung() {

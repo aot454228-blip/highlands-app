@@ -21,6 +21,7 @@ public class FormChinh extends JFrame {
         void khiMo();
     }
 
+    private boolean dangXuat = false;
     private final JLabel tieuDe = new JLabel();
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel noiDung = new JPanel(cardLayout);
@@ -40,7 +41,7 @@ public class FormChinh extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                khiDong.run();
+                if (!dangXuat) khiDong.run(); // đăng xuất thì không thoát app
             }
         });
         setIconImage(veIcon());
@@ -130,7 +131,19 @@ public class FormChinh extends JFrame {
         vt.setFont(Theme.font(Font.PLAIN, 10));
         meChu.add(vt);
         me.add(meChu);
-        p.add(me, BorderLayout.SOUTH);
+        Nut nutDangXuat = new Nut("Đăng xuất / Đổi vai trò", Nut.Kieu.THUONG);
+        nutDangXuat.addActionListener(e -> {
+            if (JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?\nGiỏ hàng chưa thanh toán sẽ bị hủy.",
+                    "Đăng xuất", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+            dangXuat = true;
+            dispose();
+            com.highlands.HighlandsApplication.hienChonVaiTro();
+        });
+        JPanel duoi = new JPanel(new BorderLayout(0, 10));
+        duoi.setOpaque(false);
+        duoi.add(me, BorderLayout.NORTH);
+        duoi.add(nutDangXuat, BorderLayout.SOUTH);
+        p.add(duoi, BorderLayout.SOUTH);
         return p;
     }
 
