@@ -13,6 +13,7 @@ import java.awt.*;
 public class FormNhanVien extends JFrame {
     private static final String CARD_BAN_HANG = "banhang";
     private static final String CARD_LICH_SU = "lichsu";
+    private static final String CARD_ONLINE = "online";
 
     private final ConfigurableApplicationContext ctx;
     private final CardLayout cardLayout = new CardLayout();
@@ -20,6 +21,8 @@ public class FormNhanVien extends JFrame {
     private final MucMenu mucBanHang = new MucMenu("Bán hàng");
     private final MucMenu mucLichSu = new MucMenu("Lịch sử đơn hàng");
     private final TrangLichSuDonHang trangLichSu;
+    private final MucMenu mucOnline = new MucMenu("Đơn online");
+    private final TrangDonOnline trangOnline;
 
     public FormNhanVien(ConfigurableApplicationContext ctx, TaiKhoan taiKhoan) {
         super("Highlands Coffee – Nhân viên");
@@ -33,7 +36,7 @@ public class FormNhanVien extends JFrame {
             @Override public void windowClosing(java.awt.event.WindowEvent e) { thoatUngDung(); }
         });
         setSize(1360, 800);
-        setMinimumSize(new Dimension(1180, 680));
+        setMinimumSize(new Dimension(1180, 720));
         setLocationRelativeTo(null);
 
         JPanel goc = new JPanel(new BorderLayout());
@@ -42,20 +45,24 @@ public class FormNhanVien extends JFrame {
 
         noiDung.setBackground(KieuNV.NEN);
         trangLichSu = new TrangLichSuDonHang(thanhToan);
+        trangOnline = new TrangDonOnline(ctx.getBean(com.highlands.service.DonOnlineService.class), nv.getId());
+        noiDung.add(trangOnline, CARD_ONLINE);
         noiDung.add(new TrangBanHang(banHang, thanhToan, nv), CARD_BAN_HANG);
         noiDung.add(trangLichSu, CARD_LICH_SU);
         goc.add(noiDung, BorderLayout.CENTER);
+        GiaoDienBanHang.hoanThien(noiDung);
         setContentPane(goc);
 
         mucBanHang.addActionListener(e -> chuyen(CARD_BAN_HANG));
         mucLichSu.addActionListener(e -> chuyen(CARD_LICH_SU));
+        mucOnline.addActionListener(e -> chuyen(CARD_ONLINE));
         chuyen(CARD_BAN_HANG);
     }
 
     private JComponent taoTieuDe(NhanVien nv) {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(KieuNV.DO);
-        p.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        p.setBorder(BorderFactory.createEmptyBorder(12, 22, 12, 22));
         JPanel trai = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         trai.setOpaque(false);
         trai.add(new LogoTron(38));
@@ -73,8 +80,8 @@ public class FormNhanVien extends JFrame {
 
     private JComponent taoSidebar(NhanVien nv) {
         JPanel p = new JPanel();
-        p.setBackground(Color.WHITE);
-        p.setPreferredSize(new Dimension(240, 0));
+        p.setBackground(Theme.TOPBAR);
+        p.setPreferredSize(new Dimension(224, 0));
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 0, 1, KieuNV.VIEN), BorderFactory.createEmptyBorder(20, 14, 16, 14)));
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
@@ -83,20 +90,22 @@ public class FormNhanVien extends JFrame {
         logo.setAlignmentX(CENTER_ALIGNMENT);
         p.add(logo);
         p.add(Box.createVerticalStrut(8));
-        p.add(dong("Highlands", new Font("Segoe UI", Font.BOLD, 18), KieuNV.DO, CENTER_ALIGNMENT));
-        p.add(dong("NHÂN VIÊN", KieuNV.NHO, KieuNV.CHU_PHU, CENTER_ALIGNMENT));
+        p.add(dong("Highlands", new Font("Segoe UI", Font.BOLD, 18), Color.WHITE, CENTER_ALIGNMENT));
+        p.add(dong("NHÂN VIÊN", KieuNV.NHO, Theme.SIDEBAR_TEXT, CENTER_ALIGNMENT));
         p.add(Box.createVerticalStrut(24));
         p.add(mucBanHang);
         p.add(Box.createVerticalStrut(6));
         p.add(mucLichSu);
+        p.add(Box.createVerticalStrut(6));
+        p.add(mucOnline);
         p.add(Box.createVerticalGlue());
 
-        p.add(dong("Đang đăng nhập", KieuNV.NHO, KieuNV.CHU_PHU, LEFT_ALIGNMENT));
-        p.add(dong(nv.getHoTen(), KieuNV.DAM, KieuNV.CHU, LEFT_ALIGNMENT));
-        p.add(dong("Mã NV: " + nv.getMaNhanVien(), KieuNV.NHO, KieuNV.CHU_PHU, LEFT_ALIGNMENT));
+        p.add(dong("Đang đăng nhập", KieuNV.NHO, Theme.SIDEBAR_TEXT, CENTER_ALIGNMENT));
+        p.add(dong(nv.getHoTen(), KieuNV.DAM, Color.WHITE, CENTER_ALIGNMENT));
+        p.add(dong("Mã NV: " + nv.getMaNhanVien(), KieuNV.NHO, Theme.SIDEBAR_TEXT, CENTER_ALIGNMENT));
         p.add(Box.createVerticalStrut(12));
-        JButton dangXuat = KieuNV.nutPhu("Đăng xuất");
-        dangXuat.setAlignmentX(LEFT_ALIGNMENT);
+        JButton dangXuat = KieuNV.nutPhu("Đăng xuất / Đổi vai trò");
+        dangXuat.setAlignmentX(CENTER_ALIGNMENT);
         dangXuat.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         dangXuat.addActionListener(e -> dangXuat());
         p.add(dangXuat);
@@ -113,6 +122,8 @@ public class FormNhanVien extends JFrame {
         cardLayout.show(noiDung, the);
         mucBanHang.setChon(the.equals(CARD_BAN_HANG));
         mucLichSu.setChon(the.equals(CARD_LICH_SU));
+        mucOnline.setChon(the.equals(CARD_ONLINE));
+        if (the.equals(CARD_ONLINE)) trangOnline.lamMoi();
         if (the.equals(CARD_LICH_SU)) trangLichSu.lamMoi();
     }
 
@@ -120,7 +131,7 @@ public class FormNhanVien extends JFrame {
         if (JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đăng xuất?\nGiỏ hàng chưa thanh toán sẽ bị hủy.",
                 "Đăng xuất", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
         dispose();
-        new DangNhapNhanVien(ctx).setVisible(true);
+        com.highlands.HighlandsApplication.hienChonVaiTro();
     }
 
     private void thoatUngDung() {
@@ -136,6 +147,8 @@ public class FormNhanVien extends JFrame {
 
         MucMenu(String chu) {
             super(chu);
+            setIcon(GiaoDienBanHang.bieuTuongMenu(chu));
+            setIconTextGap(10);
             setFont(new Font("Segoe UI", Font.BOLD, 15));
             setHorizontalAlignment(SwingConstants.LEFT);
             setContentAreaFilled(false);
@@ -143,22 +156,22 @@ public class FormNhanVien extends JFrame {
             setFocusPainted(false);
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 12));
+            setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 8));
             setAlignmentX(CENTER_ALIGNMENT);
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         }
 
         void setChon(boolean chon) { this.chon = chon; repaint(); }
 
-        @Override public Color getForeground() { return chon ? Color.WHITE : KieuNV.CHU; }
+        @Override public Color getForeground() { return Color.WHITE; }
 
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (chon) g.setColor(KieuNV.DO_SANG);
-            else if (getModel().isRollover()) g.setColor(KieuNV.NEN);
-            else g.setColor(Color.WHITE);
+            else if (getModel().isRollover()) g.setColor(Theme.SIDEBAR_HOVER);
+            else g.setColor(Theme.TOPBAR);
             g.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
             g.dispose();
             super.paintComponent(g0);

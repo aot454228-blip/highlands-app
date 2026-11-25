@@ -36,9 +36,11 @@ public class ThongKeService {
         return new LocalDate[]{t, d};
     }
 
+    // Doanh thu và bán chạy lấy theo ngày thu tiền trên chứng từ.
+    // Đơn cũ/online không có chứng từ thu tiền không được tự suy diễn là đã thanh toán.
     public Map<String, Object> doanhThu(LocalDate tu, LocalDate den) {
         LocalDate[] k = khoang(tu, den);
-        return gop(donHangRepo.doanhThuTheoNgay(k[0], k[1]));
+        return gop(donHangRepo.doanhThuTheoNgay(k[0].atStartOfDay(), k[1].plusDays(1).atStartOfDay()));
     }
 
     public Map<String, Object> chiPhi(LocalDate tu, LocalDate den) {
@@ -50,7 +52,7 @@ public class ThongKeService {
         LocalDate[] k = khoang(tu, den);
         int n = Math.max(1, Math.min(top, 50));
         List<Map<String, Object>> kq = new ArrayList<>();
-        for (Object[] r : chiTietRepo.banChay(k[0], k[1], PageRequest.of(0, n))) {
+        for (Object[] r : chiTietRepo.banChay(k[0].atStartOfDay(), k[1].plusDays(1).atStartOfDay(), PageRequest.of(0, n))) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", r[0]);
             m.put("ten", r[1]);

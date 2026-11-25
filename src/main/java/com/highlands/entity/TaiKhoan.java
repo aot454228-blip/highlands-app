@@ -4,10 +4,17 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Tài khoản đăng nhập của nhân viên. Mật khẩu chỉ lưu dạng băm PBKDF2 (xem service/MatKhau)
+// Tài khoản nội bộ. Mật khẩu chỉ lưu dạng băm PBKDF2 (xem service/MatKhau).
 @Entity
 @Table(name = "tai_khoan")
 public class TaiKhoan {
+
+    public static final String NHAN_VIEN = "NHAN_VIEN";
+    public static final String QUAN_LY = "QUAN_LY";
+
+    // Mặc định an toàn cho tài khoản cũ; không tự cấp quyền quản trị.
+    @Column(name = "vai_tro", columnDefinition = "NVARCHAR(20) NOT NULL DEFAULT N'NHAN_VIEN'")
+    private String vaiTro = NHAN_VIEN;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,6 +45,8 @@ public class TaiKhoan {
     }
 
     public Long getId() { return id; }
+    public String getVaiTro() { return vaiTro; }
+    public void setVaiTro(String vaiTro) { this.vaiTro = vaiTro; }
     public void setId(Long id) { this.id = id; }
     public String getTenDangNhap() { return tenDangNhap; }
     public void setTenDangNhap(String tenDangNhap) { this.tenDangNhap = tenDangNhap; }

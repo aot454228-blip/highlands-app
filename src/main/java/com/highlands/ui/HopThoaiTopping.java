@@ -30,15 +30,15 @@ class HopThoaiTopping extends JDialog {
         goc.setBorder(new EmptyBorder(18, 22, 18, 22));
 
         // Đầu: tên món + giá
-        JPanel dau = new JPanel(new GridLayout(2, 1, 0, 2));
+        JPanel dau = new JPanel(new BorderLayout(0, 8));
         dau.setOpaque(false);
-        JLabel ten = new JLabel(sanPham.getTen());
+        JLabel ten = new JLabel("<html><div style='width:360px'>" + KieuNV.escape(sanPham.getTen()) + "</div></html>");
         ten.setFont(KieuNV.TIEU_DE);
         ten.setForeground(KieuNV.DO);
         JLabel gia = new JLabel(KieuNV.tien(java.math.BigDecimal.valueOf(sanPham.getGia())));
         gia.setFont(KieuNV.DAM);
-        dau.add(ten);
-        dau.add(gia);
+        dau.add(ten, BorderLayout.CENTER);
+        dau.add(gia, BorderLayout.SOUTH);
         goc.add(dau, BorderLayout.NORTH);
 
         // Giữa: danh sách topping (cuộn được nếu nhiều)
@@ -56,6 +56,9 @@ class HopThoaiTopping extends JDialog {
             c.setFont(KieuNV.FONT);
             c.setAlignmentX(LEFT_ALIGNMENT);
             c.setFocusPainted(false);
+            c.setForeground(Theme.TEXT);
+            c.setBorder(new EmptyBorder(10, 8, 10, 8));
+            c.setToolTipText(t.getTen());
             c.addActionListener(e -> capNhatTong());
             oChon.add(c);
             ds.add(c);
@@ -64,7 +67,7 @@ class HopThoaiTopping extends JDialog {
         cuon.setBorder(BorderFactory.createLineBorder(KieuNV.VIEN));
         cuon.getViewport().setBackground(Color.WHITE);
         ds.setBorder(new EmptyBorder(10, 12, 10, 12));
-        cuon.setPreferredSize(new Dimension(380, Math.min(260, 70 + dsTopping.size() * 28)));
+        cuon.setPreferredSize(new Dimension(440, Math.min(280, 70 + dsTopping.size() * 44)));
         goc.add(cuon, BorderLayout.CENTER);
 
         // Dưới: số lượng, thành tiền, nút
@@ -122,6 +125,7 @@ class HopThoaiTopping extends JDialog {
         duoi.add(nut, BorderLayout.SOUTH);
         goc.add(duoi, BorderLayout.SOUTH);
 
+        GiaoDienBanHang.hoanThien(goc);
         setContentPane(goc);
         getRootPane().setDefaultButton(them);
         getRootPane().registerKeyboardAction(e -> dispose(),

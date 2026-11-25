@@ -34,7 +34,7 @@ public class Nut extends JButton {
         setHorizontalAlignment(menu ? LEFT : CENTER);
         setMargin(menu ? new Insets(10, 14, 10, 14) : new Insets(8, 16, 8, 16));
         setForeground(kieu == Kieu.CHINH || kieu == Kieu.MENU_CHON || kieu == Kieu.TAB_CHON ? Color.WHITE
-                : menu ? new Color(0x37, 0x41, 0x51) : Theme.TEXT);
+                : menu ? Theme.SIDEBAR_TEXT : Theme.TEXT);
     }
 
     @Override
@@ -59,12 +59,12 @@ public class Nut extends JButton {
         int bo = kieu == Kieu.TAB || kieu == Kieu.TAB_CHON ? h : 10;
         Color nen = null, vien = null;
         switch (kieu) {
-            case CHINH -> nen = !isEnabled() ? new Color(0xD8, 0x8A, 0x8A) : re ? Theme.BRAND_DARK : Theme.BRAND;
+            case CHINH -> nen = !isEnabled() ? new Color(0x9CB5EB) : re ? Theme.BRAND_DARK : Theme.BRAND;
             case THUONG, TAB -> {
                 nen = re ? Theme.HOVER : Color.WHITE;
                 vien = Theme.VIEN_O;
             }
-            case MENU -> nen = re ? Theme.HOVER : null;
+            case MENU -> nen = re ? Theme.SIDEBAR_HOVER : null;
             case MENU_CHON, TAB_CHON -> nen = Theme.BRAND;
         }
         if (nen != null) {

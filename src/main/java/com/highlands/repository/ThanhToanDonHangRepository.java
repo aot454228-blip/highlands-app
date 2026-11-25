@@ -12,6 +12,12 @@ import java.util.Optional;
 
 public interface ThanhToanDonHangRepository extends JpaRepository<ThanhToanDonHang, Long> {
 
+    @Query("select t.donHang.id from ThanhToanDonHang t where exists "
+            + "(select k.id from DonHangKhach k where k.donHang = t.donHang)")
+    List<Long> timMaDonOnlineDaThu();
+
+    boolean existsByDonHang_Id(Long donHangId);
+
     Optional<ThanhToanDonHang> findByMaGiaoDich(String maGiaoDich);
 
     // Lịch sử theo khoảng thời gian [tu, den), mới nhất trước

@@ -6,6 +6,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Arrays;
+import java.util.function.Consumer;
+import com.highlands.service.DangNhapService.PhienQuanLy;
 
 /** Màn hình đăng nhập riêng cho Nhân viên. */
 public class DangNhapNhanVien extends JFrame {
@@ -15,9 +17,20 @@ public class DangNhapNhanVien extends JFrame {
     private final JPasswordField oMatKhau = new JPasswordField();
     private final JLabel nhanLoi = new JLabel(" ");
     private final JButton nutDangNhap = KieuNV.nut("Đăng nhập");
+    private final Consumer<PhienQuanLy> khiQuanLy;
+    private boolean dangXuLy;
+
+    public static DangNhapNhanVien choQuanLy(ConfigurableApplicationContext ctx, Consumer<PhienQuanLy> khiXong) {
+        return new DangNhapNhanVien(ctx, java.util.Objects.requireNonNull(khiXong));
+    }
 
     public DangNhapNhanVien(ConfigurableApplicationContext ctx) {
-        super("Highlands Coffee – Đăng nhập nhân viên");
+        this(ctx, null);
+    }
+
+    private DangNhapNhanVien(ConfigurableApplicationContext ctx, Consumer<PhienQuanLy> khiQuanLy) {
+        super(khiQuanLy == null ? "Highlands Coffee – Đăng nhập nhân viên" : "Highlands Coffee – Đăng nhập Quản lý");
+        this.khiQuanLy = khiQuanLy;
         this.ctx = ctx;
         this.dangNhapService = ctx.getBean(DangNhapService.class);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -41,7 +54,7 @@ public class DangNhapNhanVien extends JFrame {
         trai.add(Box.createVerticalStrut(18));
         trai.add(canGiua(new JLabel("HIGHLANDS COFFEE"), new Font("Segoe UI", Font.BOLD, 24), Color.WHITE));
         trai.add(Box.createVerticalStrut(6));
-        trai.add(canGiua(new JLabel("Phân hệ NHÂN VIÊN bán hàng"), KieuNV.FONT, new Color(0xF5D0D5)));
+        trai.add(canGiua(new JLabel(khiQuanLy == null ? "Phân hệ NHÂN VIÊN bán hàng" : "Phân hệ QUẢN LÝ"), KieuNV.FONT, Theme.SIDEBAR_TEXT));
         trai.add(Box.createVerticalGlue());
 
         JPanel phai = new JPanel();
@@ -71,7 +84,7 @@ public class DangNhapNhanVien extends JFrame {
         hang.setOpaque(false);
         hang.setAlignmentX(LEFT_ALIGNMENT);
         hang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        JButton nutThoat = KieuNV.nutPhu("Thoát");
+        JButton nutThoat = KieuNV.nutPhu(khiQuanLy == null ? "Thoát" : "Chọn vai trò");
         nutThoat.addActionListener(e -> thoat());
         nutDangNhap.addActionListener(e -> dangNhap());
         hang.add(nutDangNhap);
@@ -109,24 +122,55 @@ public class DangNhapNhanVien extends JFrame {
     }
 
     private void dangNhap() {
+        if (dangXuLy) return;
+        dangXuLy = true;
         String ten = oTen.getText();
         char[] mk = oMatKhau.getPassword();
         nhanLoi.setText(" ");
         nutDangNhap.setEnabled(false);
-        ChayNen.chay(() -> dangNhapService.dangNhap(ten, mk), tk -> {
-            Arrays.fill(mk, '\0');
+        if (khiQuanLy != null) {
+            ChayNen.chay(() -> {
+                try {
+                    PhienQuanLy phien = dangNhapService.dangNhapQuanLy(ten, mk);
+                    dangNhapService.kiemTraQuanLy(phien);
+                    return phien;
+                } finally { Arrays.fill(mk, '\0'); }
+            }, phien -> {
+                oMatKhau.setText("");
+                dispose();
+                khiQuanLy.accept(phien);
+            }, this::loiDangNhap);
+            return;
+        }
+        ChayNen.chay(() -> {
+            try { return dangNhapService.dangNhap(ten, mk); }
+            finally { Arrays.fill(mk, '\0'); }
+        }, tk -> {
+            oMatKhau.setText("");
             dispose();
             new FormNhanVien(ctx, tk).setVisible(true);
         }, ex -> {
             Arrays.fill(mk, '\0');
-            oMatKhau.setText("");
-            nhanLoi.setText("<html>" + KieuNV.escape(ChayNen.thongDiep(ex)) + "</html>");
-            nutDangNhap.setEnabled(true);
-            oMatKhau.requestFocusInWindow();
+            loiDangNhap(ex);
         });
     }
 
+    private void loiDangNhap(Throwable ex) {
+        dangXuLy = false;
+        oMatKhau.setText("");
+        nhanLoi.setText("<html>" + KieuNV.escape(ChayNen.thongDiep(ex)) + "</html>");
+        nutDangNhap.setEnabled(true);
+        oMatKhau.requestFocusInWindow();
+    }
+
     private void thoat() {
+        if (dangXuLy) return;
+        oMatKhau.setText("");
+        if (khiQuanLy != null) {
+            dispose();
+            com.highlands.HighlandsApplication.hienChonVaiTro();
+            return;
+        }
         ctx.close();
         System.exit(0);
     }

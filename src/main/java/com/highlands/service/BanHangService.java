@@ -1,6 +1,9 @@
 package com.highlands.service;
 
+import com.highlands.entity.DanhMuc;
 import com.highlands.entity.KhuyenMai;
+import com.highlands.repository.DanhMucRepository;
+import org.springframework.transaction.annotation.Transactional;
 import com.highlands.entity.SanPham;
 import com.highlands.entity.Topping;
 import com.highlands.repository.KhuyenMaiRepository;
@@ -13,7 +16,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 // Dữ liệu cho màn hình bán hàng: thực đơn, topping, kiểm tra mã khuyến mãi
 @Service
@@ -34,11 +40,66 @@ public class BanHangService {
         }
     }
 
+    private record MonHienThi(Long id, String ten, long gia, String anh, Object danhMuc) {}
+    private record DanhMucHienThi(Long id, String ten) {}
+
+    public record ThucDon(List<MonThucDon> mon, List<DanhMuc> danhMuc, List<Topping> topping) {
+        public boolean cungLuoi(ThucDon cu) {
+            return cu != null && monHienThi().equals(cu.monHienThi()) && danhMucHienThi().equals(cu.danhMucHienThi());
+        }
+
+        private List<MonHienThi> monHienThi() {
+            return mon.stream().map(m -> {
+                SanPham sp = m.sanPham();
+                return new MonHienThi(sp.getId(), sp.getTen(), sp.getGia(), sp.getHinhAnh(), m.khoaDanhMuc());
+            }).toList();
+        }
+
+        private List<DanhMucHienThi> danhMucHienThi() {
+            return danhMuc.stream().map(d -> new DanhMucHienThi(d.getId(), d.getTen())).toList();
+        }
+
+        // Giữ các dòng không còn bán để người dùng tự chỉnh giỏ. Lúc lưu sẽ kiểm tra lại CSDL.
+        public boolean capNhatGio(List<DongGio> gio) {
+            Map<Long, SanPham> monTheoId = new HashMap<>();
+            for (MonThucDon m : mon) monTheoId.put(m.sanPham().getId(), m.sanPham());
+            Map<Long, Topping> toppingTheoId = new HashMap<>();
+            for (Topping t : topping) toppingTheoId.put(t.getId(), t);
+            boolean thayDoi = false;
+            for (int i = 0; i < gio.size(); i++) {
+                DongGio d = gio.get(i);
+                SanPham cu = d.getSanPham();
+                SanPham moi = monTheoId.getOrDefault(cu.getId(), cu);
+                List<Topping> tpMoi = d.getTopping().stream()
+                        .map(t -> toppingTheoId.getOrDefault(t.getId(), t)).toList();
+                boolean doiTopping = false;
+                for (int j = 0; j < tpMoi.size(); j++) {
+                    Topping t = tpMoi.get(j);
+                    Topping tCu = d.getTopping().get(j);
+                    doiTopping |= t.getGia() != tCu.getGia() || !Objects.equals(t.getTen(), tCu.getTen());
+                }
+                if (moi.getGia() != cu.getGia() || !Objects.equals(moi.getTen(), cu.getTen()) || doiTopping) {
+                    gio.set(i, new DongGio(moi, tpMoi, d.getSoLuong()));
+                    thayDoi = true;
+                }
+            }
+            return thayDoi;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ThucDon taiThucDon() {
+        return new ThucDon(layThucDon(), danhMucRepo.findByDangBanTrue(Sort.by("ten")), layTopping());
+    }
+
+    private final DanhMucRepository danhMucRepo;
     private final SanPhamRepository sanPhamRepo;
     private final ToppingRepository toppingRepo;
     private final KhuyenMaiRepository khuyenMaiRepo;
 
-    public BanHangService(SanPhamRepository sanPhamRepo, ToppingRepository toppingRepo, KhuyenMaiRepository khuyenMaiRepo) {
+    public BanHangService(SanPhamRepository sanPhamRepo, ToppingRepository toppingRepo, KhuyenMaiRepository khuyenMaiRepo,
+                          DanhMucRepository danhMucRepo) {
+        this.danhMucRepo = danhMucRepo;
         this.sanPhamRepo = sanPhamRepo;
         this.toppingRepo = toppingRepo;
         this.khuyenMaiRepo = khuyenMaiRepo;
@@ -46,7 +107,8 @@ public class BanHangService {
 
     // Sắp theo danh mục rồi theo tên món
     public List<MonThucDon> layThucDon() {
-        return sanPhamRepo.findAll(Sort.by("id")).stream()
+        return sanPhamRepo.findByDangBanTrue(Sort.by("id")).stream()
+                .filter(s -> s.getDanhMuc().isDangBan())
                 .map(s -> new MonThucDon(s, s.getDanhMuc().getId(), s.getDanhMuc().getTen()))
                 .sorted(Comparator.comparing((MonThucDon m) -> TienIch.boDau(m.tenDanhMuc()))
                         .thenComparing(m -> TienIch.boDau(m.sanPham().getTen())))
@@ -54,7 +116,7 @@ public class BanHangService {
     }
 
     public List<Topping> layTopping() {
-        return toppingRepo.findAll(Sort.by("ten"));
+        return toppingRepo.findByDangBanTrue(Sort.by("ten"));
     }
 
     public KetQuaKhuyenMai kiemTraKhuyenMai(String ma, BigDecimal tienHang) {

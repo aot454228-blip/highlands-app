@@ -32,6 +32,50 @@ public class DangNhapService {
 
     @Transactional(readOnly = true)
     public TaiKhoan dangNhap(String tenDangNhap, char[] matKhau) {
+        TaiKhoan tk = xacThuc(tenDangNhap, matKhau);
+        if (!TaiKhoan.NHAN_VIEN.equals(tk.getVaiTro()))
+            throw new LoiNghiepVu("Tài khoản không có quyền vào phân hệ Nhân viên");
+        return tk;
+    }
+
+    /** Chỉ service được tạo phiên sau khi đã kiểm tra mật khẩu và quyền từ CSDL. */
+    public static final class PhienQuanLy {
+        private final Long taiKhoanId;
+        private final String tenDangNhap;
+        private volatile boolean hieuLuc = true;
+
+        private PhienQuanLy(TaiKhoan tk) {
+            taiKhoanId = tk.getId();
+            tenDangNhap = tk.getTenDangNhap();
+        }
+        public String tenDangNhap() { return tenDangNhap; }
+        public void kiemTra() {
+            if (!hieuLuc) throw new LoiNghiepVu("Phiên Quản lý đã kết thúc. Vui lòng đăng nhập lại");
+        }
+        public void dangXuat() { hieuLuc = false; }
+    }
+
+    @Transactional(readOnly = true)
+    public PhienQuanLy dangNhapQuanLy(String tenDangNhap, char[] matKhau) {
+        TaiKhoan tk = xacThuc(tenDangNhap, matKhau);
+        if (!TaiKhoan.QUAN_LY.equals(tk.getVaiTro()))
+            throw new LoiNghiepVu("Tài khoản không có quyền Quản lý");
+        return new PhienQuanLy(tk);
+    }
+
+    @Transactional(readOnly = true)
+    public void kiemTraQuanLy(PhienQuanLy phien) {
+        if (phien == null) throw new LoiNghiepVu("Vui lòng đăng nhập Quản lý");
+        phien.kiemTra();
+        TaiKhoan tk = repo.findById(phien.taiKhoanId).orElse(null);
+        if (tk == null || !tk.isHoatDong() || tk.getNhanVien() == null
+                || !tk.getNhanVien().isDangLam() || !TaiKhoan.QUAN_LY.equals(tk.getVaiTro())) {
+            phien.dangXuat();
+            throw new LoiNghiepVu("Tài khoản không còn quyền Quản lý");
+        }
+    }
+
+    private TaiKhoan xacThuc(String tenDangNhap, char[] matKhau) {
         String ten = tenDangNhap == null ? "" : tenDangNhap.trim();
         if (ten.isEmpty() || matKhau == null || matKhau.length == 0) {
             throw new LoiNghiepVu("Vui lòng nhập tên đăng nhập và mật khẩu");
@@ -56,7 +100,7 @@ public class DangNhapService {
         saiLienTiep.remove(khoa);
 
         if (!tk.isHoatDong()) throw new LoiNghiepVu("Tài khoản đã bị khóa. Vui lòng liên hệ quản lý");
-        if (!tk.getNhanVien().isDangLam()) throw new LoiNghiepVu("Nhân viên không còn làm việc. Vui lòng liên hệ quản lý");
+        if (tk.getNhanVien() == null || !tk.getNhanVien().isDangLam()) throw new LoiNghiepVu("Nhân viên không còn làm việc. Vui lòng liên hệ quản lý");
         return tk;
     }
 

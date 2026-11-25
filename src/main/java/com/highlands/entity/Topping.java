@@ -1,6 +1,7 @@
 package com.highlands.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "topping")
@@ -19,6 +20,13 @@ public class Topping {
     // Đường dẫn ảnh (VD: /images/phin-sua-da.jpg hoặc link https://...). Để trống = hiện khung ảnh trống
     @Column(name = "hinh_anh", length = 500)
     private String hinhAnh;
+
+    @ColumnDefault("1")
+    @Column(name = "dang_ban", nullable = false)
+    private boolean dangBan = true;
+
+    public boolean isDangBan() { return dangBan; }
+    public void setDangBan(boolean dangBan) { this.dangBan = dangBan; }
 
     public Topping() {
     }

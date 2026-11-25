@@ -1,0 +1,85 @@
+HIGHLANDS — ĐỒNG BỘ THỰC ĐƠN, ĐƠN ONLINE VÀ THANH TOÁN
+
+Bản dùng để sửa là thư mục highlands-app-day-du/ trong ZIP gốc. Đây là bản có sẵn
+DonOnlineService và TrangDonOnline. Source ở cấp ngoài là bản cũ hơn. Các thư mục
+ảnh chụp, cache biên dịch và cấu hình riêng từng máy không đóng gói trong bản giao.
+
+Cài bản mới
+1. Sao lưu theo quy trình đang dùng và chạy sql/migration_dong_bo_nghiep_vu.sql
+   trên HighlandsDB hiện có. Migration thêm cột BIT dang_ban với mặc định 1
+   cho san_pham, topping và danh_muc. Có thể chạy lại migration.
+2. Dùng thông tin kết nối hiện có qua application-local.properties hoặc các biến
+   SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD.
+3. Chạy mvn package bằng JDK 17+. Tệp chạy nằm ở target/highlands-app-0.0.1.jar.
+
+Quy tắc đã triển khai
+- Gỡ khỏi thực đơn bằng cờ dang_ban để giữ liên kết đến đơn, hóa đơn và thống kê.
+  Danh mục đang có món bán cần chuyển hoặc gỡ các món trước.
+- Hai trang thực đơn làm mới thủ công hoặc theo chu kỳ 15 giây khi đang mở.
+  Tải nền, giữ tìm kiếm, danh mục còn hiệu lực, các dòng giỏ và số lượng. Giá
+  của món còn bán và topping còn dùng được cập nhật. Thanh toán kiểm tra lại
+  giá và từ chối mục đã gỡ, để khách hoặc nhân viên tự chỉnh giỏ.
+- Đơn mới và tiến độ giao hàng xuất hiện sau lượt làm mới trên hai trang đơn
+  đang mở. Trạng thái giao hàng và việc xác nhận tiền được ghi riêng.
+- Nhân viên xác nhận đã nhận đủ số tiền của đơn sau khi thu tiền mặt hoặc kiểm
+  tra chuyển khoản. Chứng từ liên kết với đơn cũ và người xác nhận. Khóa giao
+  dịch kết hợp ràng buộc UNIQUE trong SQL Server chống ghi hai chứng từ.
+- Báo cáo dùng ngày trên chứng từ thanh toán. Tiền theo món giữ cách tính
+  đơn giá món lúc bán nhân số lượng. Đơn cũ thiếu chứng từ vẫn bị loại khỏi
+  doanh thu và bán chạy.
+
+Danh sách 28 file mã nguồn, cấu hình và tài liệu đã thay đổi
+Tiền tố Java chính là src/main/java/com/highlands/.
+
+  entity/DanhMuc.java                  Cờ hiển thị và mặc định của danh mục.
+  entity/SanPham.java                  Cờ hiển thị và mặc định của sản phẩm.
+  entity/Topping.java                  Cờ hiển thị và mặc định của topping.
+  repository/DanhMucRepository.java    Lọc, dò trùng và khóa danh mục đang dùng.
+  repository/SanPhamRepository.java    Tìm, lọc, dò trùng và khóa sản phẩm.
+  repository/ToppingRepository.java    Lọc, dò trùng và khóa topping đang bán.
+  repository/DonHangKhachRepository.java  Khóa đơn online khi xác nhận thu.
+  repository/ThanhToanDonHangRepository.java  Tra chứng từ theo đơn online.
+  repository/DonHangRepository.java    Tổng doanh thu từ chứng từ theo ngày thu.
+  repository/ChiTietDonHangRepository.java  Xếp hạng món trong đơn đã thu.
+  service/BanHangService.java          Đọc thực đơn chung và cập nhật giá trong giỏ.
+  service/DanhMucService.java          Gỡ danh mục sau khi đã chuyển/gỡ các món.
+  service/SanPhamService.java          Gỡ món, giữ dòng sản phẩm cho đơn lịch sử.
+  service/ToppingService.java          Gỡ topping, giữ lịch sử topping đã bán.
+  service/DatHangService.java          Kiểm tra món, topping và giá lúc lưu đơn.
+  service/DonOnlineService.java        Tra tình trạng thu tiền và khóa khi xác nhận.
+  service/ThanhToanService.java         Ghi chứng từ online, kiểm tra giỏ tại quầy.
+  service/ThongKeService.java          Lọc theo khoảng ngày thu tiền.
+  ui/FormNhanVien.java                 Truyền mã nhân viên cho trang Đơn online.
+  ui/TrangBanHang.java                 Nút làm mới, hẹn giờ và giữ giỏ nhân viên.
+  ui/TrangDatHang.java                  Nút làm mới, hẹn giờ và giữ giỏ khách.
+  ui/TrangDonOnline.java               Tự tải đơn, giữ lựa chọn, xác nhận thu tiền.
+  ui/TrangDonCuaToi.java               Tải trạng thái nền, báo lỗi tự tải tại trang.
+
+  src/test/java/com/highlands/DongBoNghiepVuIntegrationCheck.java
+      Kiểm thử tích hợp dùng SQL Server thật và bật Hibernate validate.
+  src/test/java/com/highlands/KhachHangRegistrationCheck.java
+      Cấu hình H2 chỉ đăng ký trong check này, tránh bị ứng dụng SQL Server
+      quét nhầm khi chạy các lớp kiểm thử trên cùng classpath.
+  sql/migration_dong_bo_nghiep_vu.sql    Bổ sung ba cột có giá trị mặc định.
+  README.md                             Hướng dẫn nâng cấp và quy tắc nghiệp vụ.
+  .gitignore                            Bỏ qua cấu hình riêng và thư mục build.
+
+Kiểm tra đã chạy
+- Maven clean package với JDK 17 thành công.
+- SQL Server 2022, HighlandsDB kiểm thử riêng, baseline dựng theo entity và SQL
+  trong ZIP. Chạy migration hai lần và xác nhận dữ liệu mẫu có sẵn giữ dang_ban=1.
+- Kiểm thử tích hợp qua Spring, repository thật và Hibernate validate. Đã thử
+  đổi danh mục, giá món và topping, giữ giỏ, chặn giá cũ, chặn món đã gỡ,
+  gửi lại mã đặt, chuyển trạng thái, xác nhận tiền mặt và chuyển khoản, hai
+  luồng cùng thu một đơn, đơn chưa thu, thu khác ngày đặt và thanh toán tại quầy.
+- Kiểm tra Swing ở chế độ headless trên các panel thật kết nối SQL Server,
+  gồm nút làm mới, hai giỏ, lượt tự tải 15 giây và trạng thái đơn.
+- QuanLyAuthenticationCheck, KhachHangRegistrationCheck và
+  DoanhThuIntegrationCheck đều đạt. Các lớp *Check có hàm main và được
+  chạy trực tiếp, ngoài bước build Maven.
+
+Phạm vi còn lại
+- Chưa áp dụng migration hoặc kiểm tra trên HighlandsDB đang vận hành.
+- Kiểm tra Swing đã chạy headless nên chưa duyệt hiển thị trên Windows.
+- ZIP sản phẩm không chứa application-local.properties, dữ liệu kiểm thử,
+  báo cáo cũ hoặc bản biên dịch. Chưa thực hiện thao tác lên GitHub.

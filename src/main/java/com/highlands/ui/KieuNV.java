@@ -98,10 +98,17 @@ public final class KieuNV {
                 g.drawImage(goc, (w - rw) / 2, (h - rh) / 2, rw, rh, null);
             } else {
                 String chu = ten == null || ten.isBlank() ? "?" : ten.trim().substring(0, 1).toUpperCase();
-                g.setColor(new Color(0xD1, 0xD5, 0xDB));
-                g.setFont(Theme.font(Font.BOLD, h * 0.45f));
+                g.setPaint(new GradientPaint(0, 0, Theme.CHON, w, h, Color.WHITE));
+                g.fill(khung);
+                g.setColor(Theme.BRAND);
+                int cx = w / 2, cy = h / 2 - 12;
+                g.setStroke(new BasicStroke(3f));
+                g.drawRoundRect(cx - 23, cy - 18, 42, 42, 10, 10);
+                g.drawArc(cx + 10, cy - 12, 24, 26, -90, 180);
+                g.drawLine(cx - 30, cy + 30, cx + 30, cy + 30);
+                g.setFont(Theme.font(Font.BOLD, 13));
                 FontMetrics fm = g.getFontMetrics();
-                g.drawString(chu, (w - fm.stringWidth(chu)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
+                g.drawString(chu, (w - fm.stringWidth(chu)) / 2, h - 12);
             }
         } finally {
             g.dispose();

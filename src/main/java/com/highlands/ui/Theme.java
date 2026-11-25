@@ -12,19 +12,21 @@ import java.util.Locale;
 // Màu, chữ và các hàm vẽ dùng chung (giống admin.css của bản web)
 public final class Theme {
 
-    public static final Color BRAND = new Color(0xB3, 0x00, 0x00);
-    public static final Color BRAND_DARK = new Color(0x8F, 0x00, 0x00);
-    public static final Color TOPBAR = new Color(0xA6, 0x19, 0x2E);
-    public static final Color BG = new Color(0xF4, 0xF5, 0xF7);
-    public static final Color LINE = new Color(0xEC, 0xEE, 0xF1);
-    public static final Color VIEN_O = new Color(0xD1, 0xD5, 0xDB);
-    public static final Color MUTED = new Color(0x6B, 0x72, 0x80);
-    public static final Color TEXT = new Color(0x11, 0x18, 0x27);
+    public static final Color SIDEBAR_TEXT = new Color(0xCBD5E1);
+    public static final Color SIDEBAR_HOVER = new Color(0x233B60);
+    public static final Color BRAND = new Color(0x1654D9);
+    public static final Color BRAND_DARK = new Color(0x1245B5);
+    public static final Color TOPBAR = new Color(0x162746);
+    public static final Color BG = new Color(0xF3F6FC);
+    public static final Color LINE = new Color(0xE2E8F0);
+    public static final Color VIEN_O = new Color(0xE2E8F0);
+    public static final Color MUTED = new Color(0x69778C);
+    public static final Color TEXT = new Color(0x263449);
     public static final Color OK = new Color(0x16, 0xA3, 0x4A);
     public static final Color ERR = new Color(0xDC, 0x26, 0x26);
-    public static final Color XANH = new Color(0x25, 0x63, 0xEB);
-    public static final Color HOVER = new Color(0xF3, 0xF4, 0xF6);
-    public static final Color CHON = new Color(0xFD, 0xEC, 0xEC);
+    public static final Color XANH = new Color(0x1654D9);
+    public static final Color HOVER = new Color(0xEDF2FC);
+    public static final Color CHON = new Color(0xE8EFFF);
 
     // Màu badge: {nền, chữ}
     public static final Color[] BADGE_ON = {new Color(0xDC, 0xFC, 0xE7), new Color(0x15, 0x80, 0x3D)};
@@ -70,7 +72,7 @@ public final class Theme {
         UIManager.put("ComboBox.background", Color.WHITE);
         UIManager.put("ComboBox.selectionBackground", CHON);
         UIManager.put("ComboBox.selectionForeground", TEXT);
-        UIManager.put("TextField.selectionBackground", new Color(0xFC, 0xCF, 0xCF));
+        UIManager.put("TextField.selectionBackground", CHON);
         UIManager.put("Button.focus", new Color(0, 0, 0, 0));
         UIManager.put("ToolTip.background", Color.WHITE);
         // Chữ trên hộp thoại hệ thống

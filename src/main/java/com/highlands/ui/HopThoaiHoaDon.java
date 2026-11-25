@@ -21,8 +21,13 @@ class HopThoaiHoaDon extends JDialog {
     private final JPanel giay = new JPanel();
 
     HopThoaiHoaDon(Window cha, HoaDon hd) {
+        this(cha, hd, "Nhân viên:", true);
+    }
+
+    // Hóa đơn của khách đặt hàng: nhãn người bán đổi thành "Khách hàng:" và không hiện "tiền khách đưa / tiền thừa"
+    HopThoaiHoaDon(Window cha, HoaDon hd, String nhanNguoi, boolean hienTienKhachDua) {
         super(cha, "Hóa đơn " + TienIch.maHienThi(hd.maDon()), ModalityType.APPLICATION_MODAL);
-        xayDung(hd);
+        xayDung(hd, nhanNguoi, hienTienKhachDua);
 
         JPanel nen = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
         nen.setBackground(KieuNV.NEN);
@@ -43,13 +48,14 @@ class HopThoaiHoaDon extends JDialog {
         JPanel goc = new JPanel(new BorderLayout());
         goc.add(khung, BorderLayout.CENTER);
         goc.add(nut, BorderLayout.SOUTH);
+        GiaoDienBanHang.hoanThien(goc);
         setContentPane(goc);
         getRootPane().setDefaultButton(in);
         setSize(460, 700);
         setLocationRelativeTo(cha);
     }
 
-    private void xayDung(HoaDon hd) {
+    private void xayDung(HoaDon hd, String nhanNguoi, boolean hienTienKhachDua) {
         giay.setLayout(new BoxLayout(giay, BoxLayout.Y_AXIS));
         giay.setBackground(Color.WHITE);
         giay.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
@@ -64,7 +70,7 @@ class HopThoaiHoaDon extends JDialog {
         giay.add(Box.createVerticalStrut(8));
         giay.add(hang("Mã hóa đơn:", TienIch.maHienThi(hd.maDon()), F_DAM));
         giay.add(hang("Ngày giờ:", hd.ngay().format(DINH_DANG), F));
-        giay.add(hang("Nhân viên:", hd.nhanVien(), F));
+        giay.add(hang(nhanNguoi, hd.nhanVien(), F));
         giay.add(gach());
 
         for (Dong d : hd.dong()) {
@@ -81,8 +87,10 @@ class HopThoaiHoaDon extends JDialog {
         giay.add(hang("TỔNG THANH TOÁN:", KieuNV.tien(hd.tongThanhToan()), new Font("SansSerif", Font.BOLD, 14)));
         giay.add(gach());
         giay.add(hang("Phương thức:", hd.phuongThuc(), F));
-        giay.add(hang("Tiền khách đưa:", KieuNV.tien(hd.tienKhach()), F));
-        giay.add(hang("Tiền thừa:", KieuNV.tien(hd.tienThua()), F));
+        if (hienTienKhachDua && !com.highlands.service.ThanhToanService.CHUYEN_KHOAN.equals(hd.phuongThuc())) {
+            giay.add(hang("Tiền khách đưa:", KieuNV.tien(hd.tienKhach()), F));
+            giay.add(hang("Tiền thừa:", KieuNV.tien(hd.tienThua()), F));
+        }
         giay.add(Box.createVerticalStrut(12));
         giay.add(giuaDong("Cảm ơn quý khách – Hẹn gặp lại!", F_NHO));
 

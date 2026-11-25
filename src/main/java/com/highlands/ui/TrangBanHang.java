@@ -2,14 +2,17 @@ package com.highlands.ui;
 
 import com.highlands.entity.NhanVien;
 import com.highlands.entity.Topping;
+import com.highlands.entity.DanhMuc;
 import com.highlands.service.BanHangService;
 import com.highlands.service.BanHangService.MonThucDon;
+import com.highlands.service.BanHangService.ThucDon;
 import com.highlands.service.DongGio;
 import com.highlands.service.ThanhToanService;
 import com.highlands.service.ThanhToanService.HoaDon;
 import com.highlands.service.TienIch;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
@@ -25,12 +28,28 @@ public class TrangBanHang extends JPanel {
 
     // --- thực đơn ---
     private List<MonThucDon> thucDon = List.of();
+    private ThucDon thucDonDaTai;
     private List<Topping> dsTopping = List.of();
+    private final JButton lamMoiThucDon = KieuNV.nutPhu("Làm mới thực đơn");
+    private final Timer tuLamMoi = new Timer(15000, e -> {
+        if (isShowing()) taiThucDon(false);
+    });
+    private boolean dangTaiThucDon;
+
+    @Override public void addNotify() {
+        super.addNotify();
+        tuLamMoi.start();
+    }
+
+    @Override public void removeNotify() {
+        tuLamMoi.stop();
+        super.removeNotify();
+    }
     private Object khoaDanhMuc = null;               // null = tất cả
-    private final JTextField oTim = new JTextField();
+    private final JTextField oTim = new ONhap("Tên sản phẩm...");
     private final JPanel hangDanhMuc = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
     private final ButtonGroup nhomDanhMuc = new ButtonGroup();
-    private final JPanel luoi = new JPanel(new GridLayout(0, 3, 12, 12));
+    private final JPanel luoi = new GiaoDienBanHang.LuoiSanPham();
     private final JLabel nhanTrangThai = new JLabel(" ");
     private final Map<String, ImageIcon> boNhoAnh = new HashMap<>();
 
@@ -38,7 +57,7 @@ public class TrangBanHang extends JPanel {
     private final List<DongGio> gio = new ArrayList<>();
     private final GioModel model = new GioModel();
     private final JTable bang = new JTable(model);
-    private final JTextField oMa = new JTextField();
+    private final JTextField oMa = new ONhap("Mã khuyến mãi");
     private final JLabel nhanKm = new JLabel(" ");
     private final JLabel lTienHang = new JLabel();
     private final JLabel lGiam = new JLabel();
@@ -56,10 +75,13 @@ public class TrangBanHang extends JPanel {
         setLayout(new BorderLayout(14, 0));
         setBackground(KieuNV.NEN);
         setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
-        add(taoThucDon(), BorderLayout.CENTER);
-        add(taoGioHang(), BorderLayout.EAST);
+        JPanel noiDung = new JPanel(new BorderLayout(14, 14));
+        noiDung.setOpaque(false);
+        noiDung.add(taoThucDon(), BorderLayout.CENTER);
+        noiDung.add(taoGioHang(), BorderLayout.EAST);
+        add(noiDung, BorderLayout.CENTER);
         capNhatTong();
-        taiThucDon();
+        taiThucDon(false);
     }
 
     // ================= THỰC ĐƠN =================
@@ -78,16 +100,18 @@ public class TrangBanHang extends JPanel {
         hangTim.setOpaque(false);
         hangTim.add(tieuDe, BorderLayout.WEST);
         oTim.setFont(KieuNV.FONT);
-        oTim.setPreferredSize(new Dimension(280, 36));
+        oTim.setPreferredSize(new Dimension(180, 40));
         oTim.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(KieuNV.VIEN), BorderFactory.createEmptyBorder(2, 10, 2, 10)));
         oTim.putClientProperty("JTextField.placeholderText", "Tìm sản phẩm...");
         oTim.getDocument().addDocumentListener(new SuKienGoPhim(this::veLuoi));
-        JPanel boTim = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel boTim = new JPanel(new BorderLayout(6, 0));
         boTim.setOpaque(false);
-        boTim.add(new JLabel("Tìm kiếm:  "));
-        boTim.add(oTim);
-        hangTim.add(boTim, BorderLayout.EAST);
+        boTim.add(new JLabel("Tìm kiếm:"), BorderLayout.WEST);
+        boTim.add(oTim, BorderLayout.CENTER);
+        lamMoiThucDon.addActionListener(e -> taiThucDon(true));
+        boTim.add(lamMoiThucDon, BorderLayout.EAST);
+        hangTim.add(boTim, BorderLayout.CENTER);
         hangDanhMuc.setOpaque(false);
         JScrollPane cuonDm = new JScrollPane(hangDanhMuc, ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -95,13 +119,11 @@ public class TrangBanHang extends JPanel {
         cuonDm.setOpaque(false);
         cuonDm.getViewport().setOpaque(false);
         tren.add(hangTim, BorderLayout.NORTH);
+        tren.setPreferredSize(new Dimension(0, 112));
         tren.add(cuonDm, BorderLayout.CENTER);
 
         luoi.setOpaque(false);
-        JPanel boc = new JPanel(new BorderLayout());
-        boc.setOpaque(false);
-        boc.add(luoi, BorderLayout.NORTH);
-        JScrollPane cuon = new JScrollPane(boc);
+        JScrollPane cuon = Theme.kieuCuon(new JScrollPane(luoi));
         cuon.setBorder(BorderFactory.createLineBorder(KieuNV.VIEN));
         cuon.getViewport().setBackground(KieuNV.NEN);
         cuon.getVerticalScrollBar().setUnitIncrement(24);
@@ -115,30 +137,44 @@ public class TrangBanHang extends JPanel {
         return p;
     }
 
-    private void taiThucDon() {
-        nhanTrangThai.setText("Đang tải thực đơn...");
-        ChayNen.chay(() -> new Object[]{banHang.layThucDon(), banHang.layTopping()}, kq -> {
-            @SuppressWarnings("unchecked") List<MonThucDon> ds = (List<MonThucDon>) kq[0];
-            @SuppressWarnings("unchecked") List<Topping> tp = (List<Topping>) kq[1];
-            thucDon = ds;
-            dsTopping = tp;
-            dungDanhMuc();
-            veLuoi();
+    private void taiThucDon(boolean thuCong) {
+        if (dangTaiThucDon) return;
+        dangTaiThucDon = true;
+        lamMoiThucDon.setEnabled(false);
+        if (thucDon.isEmpty() || thuCong) nhanTrangThai.setText("Đang tải thực đơn...");
+        ChayNen.chay(banHang::taiThucDon, kq -> {
+            dangTaiThucDon = false;
+            lamMoiThucDon.setEnabled(true);
+            dsTopping = kq.topping();
+            if (!kq.cungLuoi(thucDonDaTai)) {
+                thucDon = kq.mon();
+                dungDanhMuc(kq.danhMuc());
+                veLuoi();
+            } else {
+                hienSoMon(luoi.getComponentCount());
+            }
+            thucDonDaTai = kq;
+            int dongChon = bang.getSelectedRow();
+            if (kq.capNhatGio(gio)) {
+                capNhatTienGio();
+                if (dongChon >= 0) bang.setRowSelectionInterval(dongChon, dongChon);
+            }
         }, ex -> {
+            dangTaiThucDon = false;
+            lamMoiThucDon.setEnabled(true);
             nhanTrangThai.setText("Không tải được thực đơn.");
-            KieuNV.loi(this, ChayNen.thongDiep(ex));
+            if (thuCong && isShowing()) KieuNV.loi(this, ChayNen.thongDiep(ex));
         });
     }
 
-    private void dungDanhMuc() {
+    private void dungDanhMuc(List<DanhMuc> ds) {
         hangDanhMuc.removeAll();
-        Enumeration<AbstractButton> cu = nhomDanhMuc.getElements();
-        while (cu.hasMoreElements()) nhomDanhMuc.remove(cu.nextElement());
-        hangDanhMuc.add(taoChip("Tất cả", null, true));
-        Map<Object, String> dm = new LinkedHashMap<>();
-        for (MonThucDon m : thucDon) dm.putIfAbsent(m.khoaDanhMuc(), m.tenDanhMuc());
-        for (Map.Entry<Object, String> e : dm.entrySet()) hangDanhMuc.add(taoChip(e.getValue(), e.getKey(), false));
-        khoaDanhMuc = null;
+        while (nhomDanhMuc.getButtonCount() > 0)
+            nhomDanhMuc.remove(nhomDanhMuc.getElements().nextElement());
+        if (khoaDanhMuc != null && ds.stream().noneMatch(d -> d.getId().equals(khoaDanhMuc)))
+            khoaDanhMuc = null;
+        hangDanhMuc.add(taoChip("Tất cả", null, khoaDanhMuc == null));
+        for (var d : ds) hangDanhMuc.add(taoChip(d.getTen(), d.getId(), d.getId().equals(khoaDanhMuc)));
         hangDanhMuc.revalidate();
         hangDanhMuc.repaint();
     }
@@ -179,18 +215,18 @@ public class TrangBanHang extends JPanel {
             luoi.add(taoThe(m));
             dem++;
         }
-        nhanTrangThai.setText(dem == 0 ? "Không có sản phẩm phù hợp." : dem + " sản phẩm");
+        hienSoMon(dem);
         luoi.revalidate();
         luoi.repaint();
     }
 
+    private void hienSoMon(int dem) {
+        nhanTrangThai.setText(dem == 0 ? "Không có sản phẩm phù hợp." : dem + " sản phẩm");
+    }
+
     private JComponent taoThe(MonThucDon m) {
         String ten = TienIch.str(m.sanPham().getTen());
-        JPanel p = new JPanel(new BorderLayout(0, 6));
-        p.setBackground(Color.WHITE);
-        p.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(KieuNV.VIEN), BorderFactory.createEmptyBorder(8, 8, 8, 8)));
-        p.setPreferredSize(new Dimension(200, 270));
+        JPanel p = GiaoDienBanHang.theSanPham();
 
         JLabel anh = new JLabel();
         anh.setHorizontalAlignment(SwingConstants.CENTER);
@@ -200,13 +236,14 @@ public class TrangBanHang extends JPanel {
         JPanel giua = new JPanel();
         giua.setOpaque(false);
         giua.setLayout(new BoxLayout(giua, BoxLayout.Y_AXIS));
-        JLabel nTen = new JLabel("<html><div style='width:165px'>" + KieuNV.escape(ten) + "</div></html>");
+        JLabel nTen = new JLabel("<html><div style='width:132px'>" + KieuNV.escape(ten) + "</div></html>");
         nTen.setFont(KieuNV.DAM);
+        nTen.setToolTipText(ten);
         nTen.setForeground(KieuNV.CHU);
         nTen.setAlignmentX(LEFT_ALIGNMENT);
         JLabel nGia = new JLabel(KieuNV.tien(TienIch.bd(m.sanPham().getGia())));
         nGia.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        nGia.setForeground(KieuNV.DO);
+        nGia.setForeground(Theme.BRAND);
         nGia.setAlignmentX(LEFT_ALIGNMENT);
         giua.add(nTen);
         giua.add(Box.createVerticalStrut(4));
@@ -217,6 +254,7 @@ public class TrangBanHang extends JPanel {
         p.add(anh, BorderLayout.NORTH);
         p.add(giua, BorderLayout.CENTER);
         p.add(them, BorderLayout.SOUTH);
+        p.setPreferredSize(new Dimension(206, Math.max(292, p.getPreferredSize().height)));
         return p;
     }
 
@@ -235,7 +273,7 @@ public class TrangBanHang extends JPanel {
     private JComponent taoGioHang() {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setBackground(Color.WHITE);
-        p.setPreferredSize(new Dimension(450, 0));
+        p.setPreferredSize(new Dimension(420, 0));
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(KieuNV.VIEN), BorderFactory.createEmptyBorder(12, 12, 12, 12)));
 
@@ -255,7 +293,7 @@ public class TrangBanHang extends JPanel {
             @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int r, int c) {
                 super.getTableCellRendererComponent(t, "", s, f, r, c);
                 DongGio d = gio.get(r);
-                String tp = d.getTopping().isEmpty() ? "" : "<br><span style='color:#6B6B6B;font-size:10px'>+ "
+                String tp = d.getTopping().isEmpty() ? "" : "<br><span style='color:#69778C;font-size:10px'>+ "
                         + KieuNV.escape(d.moTaTopping()) + "</span>";
                 setText("<html><b>" + KieuNV.escape(TienIch.str(d.getSanPham().getTen())) + "</b>" + tp + "</html>");
                 setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 4));
@@ -267,6 +305,7 @@ public class TrangBanHang extends JPanel {
         bang.getColumnModel().getColumn(1).setCellRenderer(giua);
         bang.getColumnModel().getColumn(2).setCellRenderer(KieuNV.canPhai());
         bang.getColumnModel().getColumn(3).setCellRenderer(KieuNV.canPhai());
+        GiaoDienBanHang.gioHang(bang);
         JScrollPane cuon = new JScrollPane(bang);
         cuon.setBorder(BorderFactory.createLineBorder(KieuNV.VIEN));
         cuon.getViewport().setBackground(Color.WHITE);
@@ -397,6 +436,10 @@ public class TrangBanHang extends JPanel {
     /** Mọi thay đổi giỏ đều đổi mã giao dịch (tránh nhầm với lần thanh toán lỗi trước đó) và tính lại tiền. */
     private void thayDoiGio() {
         maGiaoDich = UUID.randomUUID().toString();
+        capNhatTienGio();
+    }
+
+    private void capNhatTienGio() {
         model.fireTableDataChanged();
         if (gio.isEmpty()) boMa();
         else if (maApDung != null) kiemTraLaiMa();

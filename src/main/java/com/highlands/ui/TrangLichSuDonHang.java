@@ -80,7 +80,7 @@ public class TrangLichSuDonHang extends JPanel {
         loc.add(denNgay);
         loc.add(tim);
         loc.add(datLai);
-        tren.add(loc, BorderLayout.CENTER);
+        tren.add(GiaoDienBanHang.thanhLoc(loc), BorderLayout.CENTER);
         add(tren, BorderLayout.NORTH);
 
         KieuNV.kieuBang(bang);

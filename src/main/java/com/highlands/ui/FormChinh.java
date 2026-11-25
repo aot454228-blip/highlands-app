@@ -7,6 +7,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import com.highlands.service.DangNhapService.PhienQuanLy;
 
 // Cửa sổ chính: thanh đỏ trên cùng + menu bên trái + vùng nội dung (giống layout bản web)
 public class FormChinh extends JFrame {
@@ -23,12 +24,14 @@ public class FormChinh extends JFrame {
     private final Map<String, JComponent> trang = new LinkedHashMap<>();
     private final Map<String, String> tenTrang = new LinkedHashMap<>();
 
-    public FormChinh(DichVu dv, Runnable khiDong) {
+    public FormChinh(DichVu dv, PhienQuanLy phien, Runnable khiDong) {
         super("Highlands - Quản lý cửa hàng");
+        java.util.Objects.requireNonNull(phien, "Cần phiên Quản lý đã xác thực").kiemTra();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
+                phien.dangXuat();
                 khiDong.run();
             }
         });
@@ -71,7 +74,7 @@ public class FormChinh extends JFrame {
 
     private JComponent menuTrai() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.WHITE);
+        p.setBackground(Theme.TOPBAR);
         p.setPreferredSize(new Dimension(230, 0));
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 0, 1, Theme.LINE), new EmptyBorder(20, 14, 12, 14)));
@@ -83,8 +86,9 @@ public class FormChinh extends JFrame {
         JPanel chu = new JPanel(new GridLayout(2, 1));
         chu.setOpaque(false);
         JLabel ten = Theme.tieuDe("Highlands", 15);
-        ten.setForeground(Theme.BRAND);
+        ten.setForeground(Color.WHITE);
         JLabel phu = Theme.nhan("ADMIN PANEL");
+        phu.setForeground(Theme.SIDEBAR_TEXT);
         phu.setFont(Theme.font(Font.PLAIN, 9));
         chu.add(ten);
         chu.add(phu);
@@ -101,15 +105,27 @@ public class FormChinh extends JFrame {
         me.setOpaque(false);
         me.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, Theme.LINE), new EmptyBorder(12, 0, 0, 0)));
-        me.add(new HinhTron("Q", new Color(0xFD, 0xE8, 0xE8), Theme.BRAND, 30));
+        me.add(new HinhTron("Q", Theme.CHON, Theme.BRAND, 30));
         JPanel meChu = new JPanel(new GridLayout(2, 1));
         meChu.setOpaque(false);
-        meChu.add(Theme.tieuDe("Quản lý", 12));
+        JLabel quanLy = Theme.tieuDe("Quản lý", 12);
+        quanLy.setForeground(Color.WHITE);
+        meChu.add(quanLy);
         JLabel vt = Theme.nhan("Quản lý cửa hàng");
+        vt.setForeground(Theme.SIDEBAR_TEXT);
         vt.setFont(Theme.font(Font.PLAIN, 10));
         meChu.add(vt);
         me.add(meChu);
-        p.add(me, BorderLayout.SOUTH);
+        JPanel chan = new JPanel(new BorderLayout(0, 10));
+        chan.setOpaque(false);
+        chan.add(me, BorderLayout.CENTER);
+        JButton dangXuat = KieuNV.nutPhu("Đăng xuất / Đổi vai trò");
+        dangXuat.addActionListener(e -> {
+            if (JOptionPane.showConfirmDialog(this, "Đăng xuất Quản lý và quay về chọn vai trò?",
+                    "Đăng xuất", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) dispose();
+        });
+        chan.add(dangXuat, BorderLayout.SOUTH);
+        p.add(chan, BorderLayout.SOUTH);
         return p;
     }
 

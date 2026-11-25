@@ -5,6 +5,7 @@ import com.highlands.repository.DanhMucRepository;
 import com.highlands.repository.SanPhamRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,11 +21,11 @@ public class DanhMucService {
     }
 
     public List<DanhMuc> layTatCa() {
-        return repo.findAll(Sort.by("id"));
+        return repo.findByDangBanTrue(Sort.by("id"));
     }
 
     public DanhMuc layTheoId(Long id) {
-        return repo.findById(id).orElseThrow(() ->
+        return repo.findByIdAndDangBanTrue(id).orElseThrow(() ->
                 new LoiNghiepVu("Không tìm thấy danh mục id = " + id));
     }
 
@@ -34,20 +35,28 @@ public class DanhMucService {
         return repo.save(d);
     }
 
+    @Transactional
     public DanhMuc sua(Long id, DanhMuc d) {
-        layTheoId(id);
+        khoaDangBan(id);
         kiemTra(d, id);
         d.setId(id);
         return repo.save(d);
     }
 
+    @Transactional
     public void xoa(Long id) {
-        layTheoId(id);
-        if (sanPhamRepo.existsByDanhMuc_Id(id)) {
+        DanhMuc d = khoaDangBan(id);
+        if (sanPhamRepo.existsByDanhMuc_IdAndDangBanTrue(id)) {
             throw new LoiNghiepVu(
                     "Danh mục đang có sản phẩm, hãy xóa hoặc chuyển sản phẩm trước");
         }
-        repo.deleteById(id);
+        d.setDangBan(false);
+        repo.save(d);
+    }
+
+    private DanhMuc khoaDangBan(Long id) {
+        return repo.findLockedByIdAndDangBanTrue(id).orElseThrow(() ->
+                new LoiNghiepVu("Không tìm thấy danh mục id = " + id));
     }
 
     // idHienTai = id đang sửa (0 khi thêm mới), dùng để kiểm tra trùng tên
@@ -56,7 +65,7 @@ public class DanhMucService {
             throw new LoiNghiepVu("Tên danh mục không được để trống");
         }
         d.setTen(d.getTen().trim());
-        if (repo.existsByTenIgnoreCaseAndIdNot(d.getTen(), idHienTai)) {
+        if (repo.existsByTenIgnoreCaseAndDangBanTrueAndIdNot(d.getTen(), idHienTai)) {
             throw new LoiNghiepVu("Danh mục \"" + d.getTen() + "\" đã tồn tại");
         }
     }

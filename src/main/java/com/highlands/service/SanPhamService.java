@@ -4,9 +4,9 @@ import com.highlands.entity.DanhMuc;
 import com.highlands.entity.SanPham;
 import com.highlands.repository.DanhMucRepository;
 import com.highlands.repository.SanPhamRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,43 +25,47 @@ public class SanPhamService {
     public List<SanPham> layDanhSach(String tuKhoa, Long danhMucId) {
         boolean coTuKhoa = tuKhoa != null && !tuKhoa.isBlank();
         if (coTuKhoa && danhMucId != null) {
-            return repo.findByTenContainingIgnoreCaseAndDanhMuc_Id(tuKhoa.trim(), danhMucId);
+            return repo.findByDangBanTrueAndTenContainingIgnoreCaseAndDanhMuc_Id(tuKhoa.trim(), danhMucId);
         }
         if (coTuKhoa) {
-            return repo.findByTenContainingIgnoreCase(tuKhoa.trim());
+            return repo.findByDangBanTrueAndTenContainingIgnoreCase(tuKhoa.trim());
         }
         if (danhMucId != null) {
-            return repo.findByDanhMuc_Id(danhMucId);
+            return repo.findByDangBanTrueAndDanhMuc_Id(danhMucId);
         }
-        return repo.findAll(Sort.by("id"));
+        return repo.findByDangBanTrue(Sort.by("id"));
     }
 
     public SanPham layTheoId(Long id) {
-        return repo.findById(id).orElseThrow(() ->
+        return repo.findByIdAndDangBanTrue(id).orElseThrow(() ->
                 new LoiNghiepVu("Không tìm thấy sản phẩm id = " + id));
     }
 
+    @Transactional
     public SanPham them(SanPham s) {
         kiemTra(s, 0L);
         s.setId(null);
         return repo.save(s);
     }
 
+    @Transactional
     public SanPham sua(Long id, SanPham s) {
-        layTheoId(id);
         kiemTra(s, id);
+        khoaDangBan(id);
         s.setId(id);
         return repo.save(s);
     }
 
+    @Transactional
     public void xoa(Long id) {
-        layTheoId(id);
-        try {
-            repo.deleteById(id);
-            repo.flush();
-        } catch (DataIntegrityViolationException e) {
-            throw new LoiNghiepVu("Sản phẩm đã có trong đơn hàng, không thể xóa");
-        }
+        SanPham sp = khoaDangBan(id);
+        sp.setDangBan(false);
+        repo.save(sp);
+    }
+
+    private SanPham khoaDangBan(Long id) {
+        return repo.findLockedByIdAndDangBanTrue(id).orElseThrow(() ->
+                new LoiNghiepVu("Không tìm thấy sản phẩm id = " + id));
     }
 
     // idHienTai = id đang sửa (0 khi thêm mới), dùng để kiểm tra trùng tên trong cùng danh mục
@@ -75,11 +79,11 @@ public class SanPhamService {
         if (s.getDanhMuc() == null || s.getDanhMuc().getId() == null) {
             throw new LoiNghiepVu("Vui lòng chọn danh mục");
         }
-        DanhMuc d = danhMucRepo.findById(s.getDanhMuc().getId()).orElseThrow(() ->
+        DanhMuc d = danhMucRepo.findLockedByIdAndDangBanTrue(s.getDanhMuc().getId()).orElseThrow(() ->
                 new LoiNghiepVu("Danh mục không tồn tại"));
         s.setDanhMuc(d);
         s.setTen(s.getTen().trim());
-        if (repo.existsByTenIgnoreCaseAndDanhMuc_IdAndIdNot(s.getTen(), d.getId(), idHienTai)) {
+        if (repo.existsByTenIgnoreCaseAndDanhMuc_IdAndDangBanTrueAndIdNot(s.getTen(), d.getId(), idHienTai)) {
             throw new LoiNghiepVu(
                     "Sản phẩm \"" + s.getTen() + "\" đã có trong danh mục này");
         }

@@ -1,6 +1,2 @@
-﻿target/
-.idea/
-.vscode/
-*.iml
-*.log
-application-local.properties
+/application-local.properties
+/target/

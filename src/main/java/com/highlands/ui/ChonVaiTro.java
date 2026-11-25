@@ -4,10 +4,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-// Hộp thoại chọn phân hệ khi mở app: Quản lý hoặc Nhân viên
+// Hộp thoại chọn phân hệ khi mở app: Quản lý, Nhân viên hoặc Khách hàng
 public final class ChonVaiTro extends JDialog {
 
-    public enum VaiTro { QUAN_LY, NHAN_VIEN }
+    public enum VaiTro { QUAN_LY, NHAN_VIEN, KHACH_HANG }
 
     private VaiTro chon = null;
 
@@ -39,13 +39,16 @@ public final class ChonVaiTro extends JDialog {
 
         Nut quanLy = new Nut("Quản lý", Nut.Kieu.THUONG);
         Nut nhanVien = new Nut("Nhân viên", Nut.Kieu.CHINH);
+        Nut khachHang = new Nut("Khách hàng", Nut.Kieu.THUONG);
         quanLy.addActionListener(e -> dong(VaiTro.QUAN_LY));
         nhanVien.addActionListener(e -> dong(VaiTro.NHAN_VIEN));
-        JPanel nut = new JPanel(new GridLayout(1, 2, 12, 0));
+        khachHang.addActionListener(e -> dong(VaiTro.KHACH_HANG));
+        JPanel nut = new JPanel(new GridLayout(1, 3, 12, 0));
         nut.setOpaque(false);
         nut.add(quanLy);
         nut.add(nhanVien);
-        nut.setPreferredSize(new Dimension(320, 46));
+        nut.add(khachHang);
+        nut.setPreferredSize(new Dimension(450, 46));
         goc.add(nut, BorderLayout.CENTER);
 
         setContentPane(goc);
